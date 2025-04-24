@@ -150,6 +150,27 @@ function JsonSyntaxHighlight({ json }: { json: string }) {
   }
 }
 
+// CSV/Excel file icon component
+const FileIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <line x1="10" y1="9" x2="8" y2="9" />
+  </svg>
+);
+
 export default function Home() {
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
@@ -260,6 +281,23 @@ export default function Home() {
     }
   ];
 
+  const isValidFileType = (file: File) => {
+    // Check for CSV files
+    if (file.type === "text/csv") return true;
+    
+    // Check for Excel files
+    if (file.type === "application/vnd.ms-excel" || 
+        file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") 
+      return true;
+    
+    // Also accept files with .csv or .xlsx or .xls extensions
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'csv' || extension === 'xlsx' || extension === 'xls') 
+      return true;
+    
+    return false;
+  };
+
   const handlePaste = (event: React.ClipboardEvent) => {
     const items = event.clipboardData?.items;
 
@@ -269,17 +307,14 @@ export default function Home() {
         .filter((file): file is File => file !== null);
 
       if (files.length > 0) {
-        const validFiles = files.filter(
-          (file) =>
-            file.type.startsWith("image/") || file.type.startsWith("text/")
-        );
+        const validFiles = files.filter(isValidFileType);
 
         if (validFiles.length === files.length) {
           const dataTransfer = new DataTransfer();
           validFiles.forEach((file) => dataTransfer.items.add(file));
           setFiles(dataTransfer.files);
         } else {
-          toast.error("Only image and text files are allowed");
+          toast.error("Only CSV and Excel files are allowed");
         }
       }
     }
@@ -300,17 +335,14 @@ export default function Home() {
     const droppedFiles = event.dataTransfer.files;
     const droppedFilesArray = Array.from(droppedFiles);
     if (droppedFilesArray.length > 0) {
-      const validFiles = droppedFilesArray.filter(
-        (file) =>
-          file.type.startsWith("image/") || file.type.startsWith("text/")
-      );
+      const validFiles = droppedFilesArray.filter(isValidFileType);
 
       if (validFiles.length === droppedFilesArray.length) {
         const dataTransfer = new DataTransfer();
         validFiles.forEach((file) => dataTransfer.items.add(file));
         setFiles(dataTransfer.files);
       } else {
-        toast.error("Only image and text files are allowed!");
+        toast.error("Only CSV and Excel files are allowed!");
       }
 
       setFiles(droppedFiles);
@@ -335,17 +367,14 @@ export default function Home() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (selectedFiles) {
-      const validFiles = Array.from(selectedFiles).filter(
-        (file) =>
-          file.type.startsWith("image/") || file.type.startsWith("text/")
-      );
+      const validFiles = Array.from(selectedFiles).filter(isValidFileType);
 
       if (validFiles.length === selectedFiles.length) {
         const dataTransfer = new DataTransfer();
         validFiles.forEach((file) => dataTransfer.items.add(file));
         setFiles(dataTransfer.files);
       } else {
-        toast.error("Only image and text files are allowed");
+        toast.error("Only CSV and Excel files are allowed");
       }
     }
   };
@@ -407,7 +436,7 @@ export default function Home() {
               </div>
               <div className="text-lg font-medium mb-1">Drop files here</div>
               <div className="text-sm text-gray-500 dark:text-gray-500">
-                Add images or text files as references
+                Add CSV or Excel files as data sources
               </div>
             </div>
           </motion.div>
@@ -520,46 +549,28 @@ export default function Home() {
             <AnimatePresence>
               {files && files.length > 0 && (
                 <div className="flex flex-row gap-3 mb-3 px-3 py-2 bg-orange-50 dark:bg-orange-50 rounded-lg border border-orange-100 dark:border-orange-100">
-                  {Array.from(files).map((file) =>
-                    file.type.startsWith("image") ? (
-                      <div key={file.name} className="relative group">
-                        <motion.img
-                          src={URL.createObjectURL(file)}
-                          alt={file.name}
-                          className="rounded-md w-16 h-16 object-cover shadow-sm border border-gray-200 dark:border-gray-200"
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{
-                            y: -10,
-                            scale: 1.1,
-                            opacity: 0,
-                            transition: { duration: 0.2 },
-                          }}
-                        />
-                        <span className="absolute inset-0 flex items-center justify-center bg-gray-800/60 text-white text-xs font-medium opacity-0 group-hover:opacity-100 rounded-md transition-opacity">
-                          {file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name}
-                        </span>
-                      </div>
-                    ) : file.type.startsWith("text") ? (
-                      <motion.div
-                        key={file.name}
-                        className="text-[8px] leading-1 w-28 h-16 overflow-hidden text-gray-700 dark:text-gray-700 border border-gray-200 dark:border-gray-200 p-2 rounded-md bg-white dark:bg-white relative group"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{
-                          y: -10,
-                          scale: 1.1,
-                          opacity: 0,
-                          transition: { duration: 0.2 },
-                        }}
-                      >
-                        <TextFilePreview file={file} />
-                        <span className="absolute inset-0 flex items-center justify-center bg-gray-800/60 text-white text-xs font-medium opacity-0 group-hover:opacity-100 rounded-md transition-opacity">
-                          {file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name}
-                        </span>
-                      </motion.div>
-                    ) : null
-                  )}
+                  {Array.from(files).map((file) => (
+                    <motion.div
+                      key={file.name}
+                      className="w-28 h-16 overflow-hidden text-gray-700 dark:text-gray-700 border border-gray-200 dark:border-gray-200 p-2 rounded-md bg-white dark:bg-white relative group flex flex-col items-center justify-center"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{
+                        y: -10,
+                        scale: 1.1,
+                        opacity: 0,
+                        transition: { duration: 0.2 },
+                      }}
+                    >
+                      <FileIcon className="size-6 text-orange-500 mb-1" />
+                      <span className="text-xs font-medium truncate max-w-full px-1">
+                        {file.name.length > 12 ? file.name.substring(0, 10) + '...' : file.name}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        {file.name.split('.').pop()?.toUpperCase()}
+                      </span>
+                    </motion.div>
+                  ))}
                 </div>
               )}
             </AnimatePresence>
@@ -567,7 +578,7 @@ export default function Home() {
             <input
               type="file"
               multiple
-              accept="image/*,text/*"
+              accept=".csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
               ref={fileInputRef}
               className="hidden"
               onChange={handleFileChange}
